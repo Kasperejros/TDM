@@ -1,9 +1,12 @@
 package com.upgrade.tdm.screens;
 
+import box2dLight.PointLight;
+import box2dLight.RayHandler;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -27,6 +30,8 @@ public class PlayScreen implements Screen {
     private final Viewport viewport;
     private final Body player;
     private final MapLoader mapLoader;
+    private final RayHandler rayHandler;
+    private final PointLight light;
 
     private static final int MOVE_DIRECTION_NONE = 0;
     private static final int MOVE_DIRECTION_FORWARD = 1;
@@ -47,13 +52,24 @@ public class PlayScreen implements Screen {
 
     public PlayScreen() {
         batch = new SpriteBatch();
-        world = new World(new Vector2(0, 0), true);
+
+        world = new World(new Vector2(0, 0), true);  // Gravity set for 0,0 as it its the top down game
+
         debugRenderer = new Box2DDebugRenderer();
+
         camera = new OrthographicCamera();
         camera.zoom = 6f;
         viewport = new FitViewport(640 / Game_TDM.PPM, 480 / Game_TDM.PPM, camera);
+
         mapLoader = new MapLoader(world);
         player = mapLoader.getPlayer();
+
+        rayHandler = new RayHandler(world);
+        rayHandler.setAmbientLight(0f, 0f, 0f, 0.5f);
+        rayHandler.setBlurNum(3);
+
+        light = new PointLight(rayHandler, 64, new Color(1,1,1,1), 16f, 0f, 0f);
+        light.attachToBody(player);
 
         player.setLinearDamping(0.5f);
     }
@@ -78,6 +94,8 @@ public class PlayScreen implements Screen {
     private void draw() {
         batch.setProjectionMatrix(camera.combined);
         debugRenderer.render(world, camera.combined);
+        rayHandler.setCombinedMatrix(camera);
+        rayHandler.render();
     }
 
     private void update(final float delta) {
@@ -89,7 +107,7 @@ public class PlayScreen implements Screen {
         camera.update();
 
         world.step(delta, 6, 2); // TODO check what those variables do
-
+        rayHandler.update();
     }
 
     private void processInput() {
@@ -191,5 +209,6 @@ public class PlayScreen implements Screen {
         world.dispose();
         debugRenderer.dispose();
         mapLoader.dispose();
+        rayHandler.dispose();
     }
 }
